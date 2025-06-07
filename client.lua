@@ -1,46 +1,42 @@
 -- client.lua
 
--- CONFIGURATION --------------------------------------------------------
+-- CONFIG & ESX INIT -----------------------------------------------------
 
-local conciergeModel    = 's_m_m_linecook'     -- ped model
-local conciergeCoords   = vector4(227.07, -809.02, 30.54, 68)  -- x,y,z,heading
-
--- Question & Answer table
-local QAs = {
-    { question = "What services do you offer?", answer = "We offer room booking, transportation arrangements, and city tours." },
-    { question = "How do I become a member?",    answer = "Simply fill out the membership form at City Hall and pay the annual fee." },
-    { question = "When is check-out time?",       answer = "Check-out is at 11:00 AM daily. Late check-out may incur extra charges." },
-    { question = "Can I change my reservation?", answer = "Yes — modifications up to 24 hours before your stay are free of charge." },
-    -- add as many Q&A pairs here as you like
-}
-
--- ESX INIT (if you need ESX functions)
+-- config.lua is auto-loaded via fxmanifest
 local ESX = nil
 Citizen.CreateThread(function()
     while not ESX do
         TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
         Citizen.Wait(10)
     end
+    if Config.Debug then print('[concierge] ESX initialized') end
 end)
 
-
--- CREATE THE CONTEXT MENU ------------------------------------------------
+-- REGISTER CONTEXT MENU ------------------------------------------------
 
 lib.registerContext({
     id    = 'concierge_menu',
     title = 'Concierge',
     options = (function()
+        if Config.Debug then
+            print(('[concierge] registering %d Q&A options'):format(#Config.QAs))
+        end
         local opts = {}
-        for _, qa in ipairs(QAs) do
+        for _, qa in ipairs(Config.QAs) do
             table.insert(opts, {
-                title       = qa.question,
-                description = nil,
-                onSelect    = function()
+                title    = qa.question,
+                onSelect = function()
+                    if Config.Debug then
+                        print(('[concierge] selected question: %s'):format(qa.question))
+                    end
                     lib.notify({
                         title       = qa.question,
                         description = qa.answer,
                         type        = 'inform'
                     })
+                    if Config.Debug then
+                        print(('[concierge] displayed answer: %s'):format(qa.answer))
+                    end
                 end
             })
         end
@@ -48,37 +44,40 @@ lib.registerContext({
     end)()
 })
 
-
--- SPAWN THE PED AND REGISTER TARGET ---------------------------------------
+-- SPAWN PED & ATTACH TARGET ---------------------------------------------
 
 Citizen.CreateThread(function()
-    -- load model
-    local hash = GetHashKey(conciergeModel)
-    if not HasModelLoaded(hash) then
-        RequestModel(hash)
-        while not HasModelLoaded(hash) do
-            Citizen.Wait(10)
-        end
-    end
+    local model  = Config.Concierge.model
+    local coords = Config.Concierge.coords
 
-    -- spawn
-    local ped = CreatePed(4, hash,
-        conciergeCoords.x, conciergeCoords.y, conciergeCoords.z,
-        conciergeCoords.w, false, true
-    )
+    -- load ped model
+    local hash = GetHashKey(model)
+    RequestModel(hash)
+    while not HasModelLoaded(hash) do
+        Citizen.Wait(10)
+    end
+    if Config.Debug then print(('[concierge] model loaded: %s'):format(model)) end
+
+    -- spawn ped
+    local ped = CreatePed(4, hash, coords.x, coords.y, coords.z, coords.w, false, true)
     FreezeEntityPosition(ped, true)
     SetEntityInvincible(ped, true)
     SetBlockingOfNonTemporaryEvents(ped, true)
+    if Config.Debug then
+        print(('[concierge] spawned ped at %.2f, %.2f, %.2f'):format(coords.x, coords.y, coords.z))
+    end
 
-    -- attach ox_target interaction
+    -- add ox_target interaction
     exports.ox_target:addLocalEntity(ped, {
         {
-            name    = 'concierge_menu_target',
-            icon    = 'fas fa-concierge-bell',
-            label   = 'Talk to Concierge',
+            name     = 'concierge_menu_target',
+            icon     = 'fas fa-concierge-bell',
+            label    = 'Talk to Concierge',
             onSelect = function()
+                if Config.Debug then print('[concierge] opening context menu') end
                 lib.showContext('concierge_menu')
             end
         }
     })
+    if Config.Debug then print('[concierge] ox_target option added') end
 end)
