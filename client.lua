@@ -1,18 +1,17 @@
 print('[gc-concierge] → client.lua starting')
 
 if type(Config) ~= 'table' then
-    print('[gc-concierge] Config is nil, attempting to dofile config.lua')
-    -- explicit fallback
-    local path = GetResourcePath(GetCurrentResourceName()) .. '/config.lua'
-    print('[gc-concierge] dofile path: ' .. path)
-    dofile(path)
-end
-
-if type(Config) ~= 'table' then
-    error('[gc-concierge] FATAL: Config still nil after dofile!')
+    error('[gc-concierge] FATAL: Config.lua not loaded or Config is nil!')
 else
     print('[gc-concierge] Config loaded OK')
 end
+
+print('[gc-concierge] → client.lua starting')
+if type(lib) ~= 'table' then
+    error('[gc-concierge] FATAL: ox_lib not loaded! Did you include @ox_lib/init.lua before client.lua?')
+end
+print('[gc-concierge] lib OK, continuing…')
+
 
 local ESX = nil
 Citizen.CreateThread(function()
