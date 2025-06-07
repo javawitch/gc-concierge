@@ -1,5 +1,3 @@
--- config.lua
-
 Config = {}
 
 -- Toggle all console logs

@@ -1,8 +1,19 @@
--- client.lua
+print('[gc-concierge] → client.lua starting')
 
--- CONFIG & ESX INIT -----------------------------------------------------
+if type(Config) ~= 'table' then
+    print('[gc-concierge] Config is nil, attempting to dofile config.lua')
+    -- explicit fallback
+    local path = GetResourcePath(GetCurrentResourceName()) .. '/config.lua'
+    print('[gc-concierge] dofile path: ' .. path)
+    dofile(path)
+end
 
--- config.lua is auto-loaded via fxmanifest
+if type(Config) ~= 'table' then
+    error('[gc-concierge] FATAL: Config still nil after dofile!')
+else
+    print('[gc-concierge] Config loaded OK')
+end
+
 local ESX = nil
 Citizen.CreateThread(function()
     while not ESX do
